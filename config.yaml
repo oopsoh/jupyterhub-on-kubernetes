@@ -1,0 +1,59 @@
+proxy:
+  secretToken: 42313dc5ae5be7087958cf669039daaa047ea86c66211940649ef4cb513e8543 
+  service:
+    type: ClusterIP
+hub:
+  extraConfig: |
+    c.JupyterHub.authenticator_class = 'ldapauthenticator.LDAPAuthenticator'
+    c.LDAPAuthenticator.server_address = 'localhost'
+    c.LDAPAuthenticator.bind_dn_template = 'uid={username},ou=example,dc=com,dc=cn'   
+    c.LDAPAuthenticator.server_port = 389
+    c.LDAPAuthenticator.user_attribute = 'uid'
+    c.LDAPAuthenticator.lookup_dn = True
+    c.LDAPAuthenticator.user_search_base = 'ou=example,dc=com,dc=cn'
+    c.LDAPAuthenticator.use_ssl = False
+  cookieSecret: ef7610809b865330f9f57131b1d84e5e50eb67b53ab648c67a348c4c16dd61eb 
+  imagePullPolicy: Always
+  db:
+    type: mysql
+    url: mysql+pymysql://jupyterhub:jupyterhub@localhost:3306/jupyterhub
+singleuser:
+  storage:
+    homeMountPath: /home/jupyter
+    capacity: 5G
+    dynamic:
+      storageClass: glusterfs
+    extraVolumes: [
+      {
+            'name': 'volume-share',
+            'persistentVolumeClaim': {
+                'claimName': 'claim-share'
+            }
+      }
+    ]
+    extraVolumeMounts: [
+      {
+            'mountPath': '/mnt',
+            'name': 'volume-share'
+      }
+    ]
+  memory:
+    limit: 3G
+    guarantee: 1G
+  cpu:
+    limit: 1.5
+    guarantee: 0.5
+  fsGid: 100
+  extraEnv: {
+    'GRANT_SUDO': 'yes'
+  }
+  lifecycleHooks:
+    postStart:
+      exec:
+        command: ["/bin/bash","-c","mkdir -p .pip && echo -e '[install]\ninstall-option=--prefix=~/.local\ntrusted-host=mirrors.aliyun.com\n\n[global]\nindex-url = http://mirrors.aliyun.com/pypi/simple/\n'  > .pip/pip.conf"]
+auth:
+  admin:
+    access: true
+    users:
+      - user1
+      - user2
